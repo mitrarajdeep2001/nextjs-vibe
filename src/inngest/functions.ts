@@ -210,9 +210,9 @@ export const codeAgentFunction = inngest.createFunction(
               lastAssistantTextMessageContent(result);
 
             if (lastAssistantMessageText && network) {
-              if (lastAssistantMessageText.includes("<task_summary>")) {
-                network.state.data.summary = lastAssistantMessageText;
-              }
+              // In single-pass mode, keep any assistant text so we don't
+              // incorrectly mark successful runs as failures.
+              network.state.data.summary = lastAssistantMessageText;
             }
 
             return result;
@@ -269,7 +269,7 @@ export const codeAgentFunction = inngest.createFunction(
 
     const isError =
       isRateLimitedAcrossAllModels ||
-      !summaryText ||
+      !cleanSummary ||
       Object.keys(result?.state.data.files || {}).length === 0;
 
     const sandboxUrl = await step.run("get-sandbox-url", async () => {
