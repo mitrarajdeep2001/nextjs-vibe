@@ -26,6 +26,11 @@ interface AgentState {
   files: { [path: string]: string };
 }
 
+interface BuildValidationResult {
+  ok: boolean;
+  output: string;
+}
+
 export const codeAgentFunction = inngest.createFunction(
   { id: "code-agent" },
   { event: "code-agent/run" },
@@ -210,7 +215,60 @@ export const codeAgentFunction = inngest.createFunction(
       },
     });
 
-    const result = await network.run(event.data.value, { state });
+    const runBuildValidation = async (
+      attempt: number,
+    ): Promise<BuildValidationResult> => {
+      return await step.run(`validate-build-${attempt}`, async () => {
+        const sandbox = await getSandbox(sandboxId);
+        let stdout = "";
+        let stderr = "";
+
+        try {
+          const result = await sandbox.commands.run("npm run build", {
+            onStdout: (data: string) => {
+              stdout += data;
+            },
+            onStderr: (data: string) => {
+              stderr += data;
+            },
+          });
+
+          const output = `${stdout}\n${stderr}`.trim().slice(-12000);
+          return {
+            ok: (result.exitCode ?? 1) === 0,
+            output,
+          };
+        } catch (error) {
+          const output =
+            `${stdout}\n${stderr}\n${String(error)}`.trim().slice(-12000);
+          return {
+            ok: false,
+            output,
+          };
+        }
+      });
+    };
+
+    let result = await network.run(event.data.value, { state });
+    let buildValidation = await runBuildValidation(0);
+
+    for (let attempt = 1; attempt <= 2 && !buildValidation.ok; attempt++) {
+      state.data.summary = "";
+
+      const retryPrompt = [
+        event.data.value,
+        "",
+        "Your previous output still has build errors.",
+        "Fix all errors below, then run `npm run build` again before finalizing.",
+        "",
+        "<build_errors>",
+        buildValidation.output || "Build failed with no logs captured.",
+        "</build_errors>",
+      ].join("\n");
+
+      result = await network.run(retryPrompt, { state });
+      buildValidation = await runBuildValidation(attempt);
+    }
 
     const fragmentTitleGenerator = createAgent({
       name: "fragment-title-generator",
@@ -251,7 +309,8 @@ export const codeAgentFunction = inngest.createFunction(
 
     const isError =
       !result.state.data.summary ||
-      Object.keys(result.state.data.files || {}).length === 0;
+      Object.keys(result.state.data.files || {}).length === 0 ||
+      !buildValidation.ok;
 
     const sandboxUrl = await step.run("get-sandbox-url", async () => {
       const sandbox = await getSandbox(sandboxId);
