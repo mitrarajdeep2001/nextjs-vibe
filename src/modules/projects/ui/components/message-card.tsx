@@ -1,9 +1,10 @@
 import Image from "next/image";
 import { format } from "date-fns";
-import { ChevronRightIcon, Code2Icon } from "lucide-react";
+import { ChevronRightIcon, Code2Icon, Loader2Icon, RotateCcwIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import type { Fragment, MessageRole, MessageType } from "@prisma/client";
 
 interface UserMessageProps {
@@ -61,6 +62,9 @@ interface AssistantMessageProps {
   isActiveFragment: boolean;
   onFragmentClick: (fragment: Fragment) => void;
   type: MessageType;
+  showRetry?: boolean;
+  onRetry?: () => void;
+  isRetrying?: boolean;
 };
 
 const AssistantMessage = ({
@@ -70,6 +74,9 @@ const AssistantMessage = ({
   isActiveFragment,
   onFragmentClick,
   type,
+  showRetry,
+  onRetry,
+  isRetrying,
 }: AssistantMessageProps) => {
   return (
     <div className={cn(
@@ -93,6 +100,23 @@ const AssistantMessage = ({
       </div>
       <div className="flex flex-col gap-y-4 pl-8.5">
         <span className="text-[15px] leading-relaxed">{content}</span>
+        {type === "ERROR" && showRetry && onRetry && (
+          <div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onRetry}
+              disabled={isRetrying}
+            >
+              {isRetrying ? (
+                <Loader2Icon className="size-4 animate-spin" />
+              ) : (
+                <RotateCcwIcon className="size-4" />
+              )}
+              Retry
+            </Button>
+          </div>
+        )}
         {fragment && type === "RESULT" && (
           <FragmentCard
             fragment={fragment}
@@ -113,6 +137,9 @@ interface MessageCardProps {
   isActiveFragment: boolean;
   onFragmentClick: (fragment: Fragment) => void;
   type: MessageType;
+  showRetry?: boolean;
+  onRetry?: () => void;
+  isRetrying?: boolean;
 };
 
 export const MessageCard = ({
@@ -123,6 +150,9 @@ export const MessageCard = ({
   isActiveFragment,
   onFragmentClick,
   type,
+  showRetry,
+  onRetry,
+  isRetrying,
 }: MessageCardProps) => {
   if (role === "ASSISTANT") {
     return (
@@ -133,6 +163,9 @@ export const MessageCard = ({
         isActiveFragment={isActiveFragment}
         onFragmentClick={onFragmentClick}
         type={type}
+        showRetry={showRetry}
+        onRetry={onRetry}
+        isRetrying={isRetrying}
       />
     )
   }

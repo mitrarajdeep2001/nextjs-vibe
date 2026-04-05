@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 
 import { useTRPC } from "@/trpc/client";
 import type { Fragment } from "@prisma/client";
@@ -20,6 +22,8 @@ export const MessagesContainer = ({
   setActiveFragment
 }: Props) => {
   const trpc = useTRPC();
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const bottomRef = useRef<HTMLDivElement>(null);
   const lastAssistantMessageIdRef = useRef<string | null>(null);
 
@@ -27,6 +31,23 @@ export const MessagesContainer = ({
     projectId: projectId,
   }, {
     refetchInterval: 2000,
+  }));
+
+  const retryMessage = useMutation(trpc.messages.create.mutationOptions({
+    onSuccess: () => {
+      queryClient.invalidateQueries(
+        trpc.messages.getMany.queryOptions({ projectId }),
+      );
+      queryClient.invalidateQueries(
+        trpc.usage.status.queryOptions(),
+      );
+    },
+    onError: (error) => {
+      toast.error(error.message);
+      if (error.data?.code === "TOO_MANY_REQUESTS") {
+        router.push("/pricing");
+      }
+    },
   }));
 
   useEffect(() => {
@@ -49,6 +70,21 @@ export const MessagesContainer = ({
 
   const lastMessage = messages[messages.length - 1];
   const isLastMessageUser = lastMessage?.role === "USER";
+  const lastUserMessage = [...messages].reverse().find(
+    (message) => message.role === "USER",
+  );
+  const lastAssistantError = [...messages].reverse().find(
+    (message) => message.role === "ASSISTANT" && message.type === "ERROR",
+  );
+
+  const handleRetry = async () => {
+    if (!lastUserMessage?.content || retryMessage.isPending) return;
+
+    await retryMessage.mutateAsync({
+      value: lastUserMessage.content,
+      projectId,
+    });
+  };
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -64,6 +100,9 @@ export const MessagesContainer = ({
               isActiveFragment={activeFragment?.id === message.fragment?.id}
               onFragmentClick={() => setActiveFragment(message.fragment)}
               type={message.type}
+              showRetry={message.id === lastAssistantError?.id}
+              isRetrying={retryMessage.isPending}
+              onRetry={handleRetry}
             />
           ))}
           {isLastMessageUser && <MessageLoading />}
