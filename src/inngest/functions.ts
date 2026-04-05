@@ -11,14 +11,13 @@ import {
 } from "@inngest/agent-kit";
 
 import { prisma } from "@/lib/db";
-import { FRAGMENT_TITLE_PROMPT, PROMPT, RESPONSE_PROMPT } from "@/prompt";
+import { PROMPT } from "@/prompt";
 
 import { inngest } from "./client";
 import { SANDBOX_TIMEOUT } from "./types";
 import {
   getSandbox,
   lastAssistantTextMessageContent,
-  parseAgentOutput,
 } from "./utils";
 
 interface AgentState {
@@ -26,15 +25,10 @@ interface AgentState {
   files: { [path: string]: string };
 }
 
-interface BuildValidationResult {
-  ok: boolean;
-  output: string;
-}
-
 const GEMINI_MODEL_FALLBACKS = [
-  "gemini-2.5-flash-lite",
   "gemini-2.5-flash",
   "gemini-2.5-pro",
+  "gemini-2.0-flash",
 ] as const;
 
 const serializeError = (error: unknown) => {
@@ -229,7 +223,7 @@ export const codeAgentFunction = inngest.createFunction(
       return createNetwork<AgentState>({
         name: "coding-agent-network",
         agents: [codeAgent],
-        maxIter: 15,
+        maxIter: 1,
         defaultState: state,
         router: async ({ network }) => {
           const summary = network.state.data.summary;
@@ -243,47 +237,9 @@ export const codeAgentFunction = inngest.createFunction(
       });
     };
 
-    const runBuildValidation = async (
-      attempt: number,
-    ): Promise<BuildValidationResult> => {
-      return await step.run(`validate-build-${attempt}`, async () => {
-        const sandbox = await getSandbox(sandboxId);
-        let stdout = "";
-        let stderr = "";
-
-        try {
-          const result = await sandbox.commands.run("npm run build", {
-            onStdout: (data: string) => {
-              stdout += data;
-            },
-            onStderr: (data: string) => {
-              stderr += data;
-            },
-          });
-
-          const output = `${stdout}\n${stderr}`.trim().slice(-12000);
-          return {
-            ok: (result.exitCode ?? 1) === 0,
-            output,
-          };
-        } catch (error) {
-          const output =
-            `${stdout}\n${stderr}\n${String(error)}`.trim().slice(-12000);
-          return {
-            ok: false,
-            output,
-          };
-        }
-      });
-    };
-
     let selectedModel: (typeof GEMINI_MODEL_FALLBACKS)[number] | null = null;
     let rateLimitFailure = false;
     let result: Awaited<ReturnType<ReturnType<typeof buildNetwork>["run"]>> | null = null;
-    let buildValidation: BuildValidationResult = {
-      ok: false,
-      output: "",
-    };
 
     for (const model of GEMINI_MODEL_FALLBACKS) {
       try {
@@ -291,25 +247,6 @@ export const codeAgentFunction = inngest.createFunction(
 
         const network = buildNetwork(model);
         result = await network.run(event.data.value, { state });
-        buildValidation = await runBuildValidation(0);
-
-        for (let attempt = 1; attempt <= 2 && !buildValidation.ok; attempt++) {
-          state.data.summary = "";
-
-          const retryPrompt = [
-            event.data.value,
-            "",
-            "Your previous output still has build errors.",
-            "Fix all errors below, then run `npm run build` again before finalizing.",
-            "",
-            "<build_errors>",
-            buildValidation.output || "Build failed with no logs captured.",
-            "</build_errors>",
-          ].join("\n");
-
-          result = await network.run(retryPrompt, { state });
-          buildValidation = await runBuildValidation(attempt);
-        }
 
         selectedModel = model;
         break;
@@ -323,56 +260,17 @@ export const codeAgentFunction = inngest.createFunction(
       }
     }
 
-    let fragmentTitleOutput: Message[] = [];
-    let responseOutput: Message[] = [];
-
-    if (selectedModel && result?.state.data.summary) {
-      const fragmentTitleGenerator = createAgent({
-        name: "fragment-title-generator",
-        description: "A fragment title generator",
-        system: FRAGMENT_TITLE_PROMPT,
-        model: gemini({
-          model: selectedModel,
-        }),
-      });
-
-      const responseGenerator = createAgent({
-        name: "response-generator",
-        description: "A response generator",
-        system: RESPONSE_PROMPT,
-        model: gemini({
-          model: selectedModel,
-        }),
-      });
-
-      try {
-        ({ output: fragmentTitleOutput } = await fragmentTitleGenerator.run(
-          result.state.data.summary,
-        ));
-      } catch (error) {
-        if (!isGeminiRateLimitError(error)) {
-          throw error;
-        }
-      }
-
-      try {
-        ({ output: responseOutput } = await responseGenerator.run(
-          result.state.data.summary,
-        ));
-      } catch (error) {
-        if (!isGeminiRateLimitError(error)) {
-          throw error;
-        }
-      }
-    }
-
     const isRateLimitedAcrossAllModels = !selectedModel && rateLimitFailure;
+    const summaryText = result?.state.data.summary || "";
+    const cleanSummary = summaryText
+      .replace(/<task_summary>/gi, "")
+      .replace(/<\/task_summary>/gi, "")
+      .trim();
 
     const isError =
       isRateLimitedAcrossAllModels ||
-      !result?.state.data.summary ||
-      Object.keys(result?.state.data.files || {}).length === 0 ||
-      !buildValidation.ok;
+      !summaryText ||
+      Object.keys(result?.state.data.files || {}).length === 0;
 
     const sandboxUrl = await step.run("get-sandbox-url", async () => {
       const sandbox = await getSandbox(sandboxId);
@@ -399,17 +297,13 @@ export const codeAgentFunction = inngest.createFunction(
       return await prisma.message.create({
         data: {
           projectId: event.data.projectId,
-          content: responseOutput.length > 0
-            ? parseAgentOutput(responseOutput)
-            : "Your app is ready. I built and validated it successfully.",
+          content: cleanSummary || "Your app is ready.",
           role: "ASSISTANT",
           type: "RESULT",
           fragment: {
             create: {
               sandboxUrl: sandboxUrl,
-              title: fragmentTitleOutput.length > 0
-                ? parseAgentOutput(fragmentTitleOutput)
-                : "Generated App",
+              title: "Generated App",
               files: result!.state.data.files,
             },
           },
