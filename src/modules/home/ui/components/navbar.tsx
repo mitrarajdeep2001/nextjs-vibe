@@ -15,24 +15,31 @@ export const Navbar = () => {
   return (
     <nav
       className={cn(
-        "p-4 bg-transparent fixed top-0 left-0 right-0 z-50 transition-all duration-200 border-b border-transparent",
-        isScrolled && "bg-background border-border"
+        "fixed top-0 left-0 right-0 z-50 px-4 py-4 transition-all duration-300",
+        isScrolled && "py-3"
       )}
     >
-      <div className="max-w-5xl mx-auto w-full flex justify-between items-center">
-        <Link href="/" className="flex items-center gap-2">
-          <Image src="/logo.svg" alt="Vibe" width={24} height={24} />
-          <span className="font-semibold text-lg">Vibe</span>
+      <div
+        className={cn(
+          "mx-auto flex w-full max-w-6xl items-center justify-between rounded-2xl border border-transparent px-4 py-2.5 transition-all duration-300",
+          isScrolled && "glass-panel border-border/80 shadow-md"
+        )}
+      >
+        <Link href="/" className="flex items-center gap-2.5">
+          <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
+            <Image src="/logo.svg" alt="Vibe" width={22} height={22} />
+          </div>
+          <span className="text-lg font-semibold tracking-tight">Vibe</span>
         </Link>
         <SignedOut>
           <div className="flex gap-2">
             <SignUpButton>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="rounded-xl">
                 Sign up
               </Button>
             </SignUpButton>
             <SignInButton>
-              <Button size="sm">
+              <Button size="sm" className="rounded-xl">
                 Sign in
               </Button>
             </SignInButton>

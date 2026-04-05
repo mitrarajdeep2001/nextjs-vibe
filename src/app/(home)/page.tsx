@@ -5,28 +5,34 @@ import { ProjectsList } from "@/modules/home/ui/components/projects-list";
 
 const Page = () => {
   return (
-    <div className="flex flex-col max-w-5xl mx-auto w-full">
-      <section className="space-y-6 py-[16vh] 2xl:py-48">
-        <div className="flex flex-col items-center">
-          <Image
-            src="/logo.svg"
-            alt="Vibe"
-            width={50}
-            height={50}
-            className="hidden md:block"
-          />
-        </div>
-        <h1 className="text-2xl md:text-5xl font-bold text-center">
-          Build something with Vibe
-        </h1>
-        <p className="text-lg md:text-xl text-muted-foreground text-center">
-          Create apps and websites by chatting with AI
-        </p>
-        <div className="max-w-3xl mx-auto w-full">
-          <ProjectForm />
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-y-8">
+      <section className="relative pt-8 md:pt-14">
+        <div className="glass-panel rounded-3xl border-border/70 px-6 py-10 md:px-10 md:py-14">
+          <div className="mx-auto flex max-w-4xl flex-col items-center gap-y-5">
+            <div className="inline-flex items-center gap-x-2 rounded-full border border-border/70 bg-background/70 px-4 py-1.5 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              <Image
+                src="/logo.svg"
+                alt="Vibe"
+                width={16}
+                height={16}
+              />
+              AI Website Studio
+            </div>
+            <h1 className="hero-title max-w-3xl text-center font-semibold">
+              Ship polished products with conversational building.
+            </h1>
+            <p className="max-w-2xl text-center text-base text-muted-foreground md:text-lg">
+              Vibe turns your prompts into complete interfaces, components, and flows. Describe what you need and iterate in real time.
+            </p>
+          </div>
+          <div className="mx-auto mt-8 w-full max-w-3xl md:mt-10">
+            <ProjectForm />
+          </div>
         </div>
       </section>
-      <ProjectsList />
+      <section className="pb-6">
+        <ProjectsList />
+      </section>
     </div>
   );
 };

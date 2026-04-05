@@ -49,13 +49,21 @@ export const ProjectsList = () => {
 
   return (
     <>
-      <div className="w-full bg-white dark:bg-sidebar rounded-xl p-8 border flex flex-col gap-y-6 sm:gap-y-4">
-        <h2 className="text-2xl font-semibold">
+      <div className="glass-panel flex w-full flex-col gap-y-5 rounded-3xl border-border/70 p-6 md:p-8">
+        <div className="flex items-end justify-between border-b border-border/60 pb-4">
+          <h2 className="text-xl font-semibold tracking-tight md:text-2xl">
+            Workspace Library
+          </h2>
+          <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
+            {projects?.length ?? 0} Project{(projects?.length ?? 0) === 1 ? "" : "s"}
+          </p>
+        </div>
+        <p className="text-sm text-muted-foreground">
           {user?.firstName}&apos;s Vibes
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {projects?.length === 0 && (
-            <div className="col-span-full text-center">
+            <div className="col-span-full rounded-2xl border border-dashed border-border/80 bg-background/70 py-12 text-center">
               <p className="text-sm text-muted-foreground">
                 No projects found
               </p>
@@ -64,22 +72,24 @@ export const ProjectsList = () => {
           {projects?.map((project) => (
             <div
               key={project.id}
-              className="border rounded-md p-4 flex items-center gap-x-3"
+              className="group flex items-center gap-x-3 rounded-2xl border border-border/70 bg-background/75 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
             >
               <Link href={`/projects/${project.id}`} className="flex-1 min-w-0">
                 <div className="flex items-center gap-x-4">
-                  <Image
-                    src="/logo.svg"
-                    alt="Vibe"
-                    width={32}
-                    height={32}
-                    className="object-contain"
-                  />
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/15">
+                    <Image
+                      src="/logo.svg"
+                      alt="Vibe"
+                      width={26}
+                      height={26}
+                      className="object-contain"
+                    />
+                  </div>
                   <div className="flex flex-col min-w-0">
-                    <h3 className="truncate font-medium">
+                    <h3 className="truncate text-[15px] font-semibold tracking-tight">
                       {project.name}
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       {formatDistanceToNow(project.updatedAt, {
                         addSuffix: true,
                       })}
@@ -91,7 +101,7 @@ export const ProjectsList = () => {
                 type="button"
                 size="icon"
                 variant="ghost"
-                className="text-destructive hover:text-destructive"
+                className="rounded-xl text-destructive opacity-80 transition-opacity group-hover:opacity-100 hover:text-destructive"
                 onClick={() => setProjectToDelete({
                   id: project.id,
                   name: project.name,

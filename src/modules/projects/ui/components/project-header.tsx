@@ -70,16 +70,18 @@ export const ProjectHeader = ({ projectId }: Props) => {
 
   return (
     <>
-      <header className="p-2 flex justify-between items-center border-b">
+      <header className="flex items-center justify-between border-b border-border/60 p-3">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
               size="sm"
-              className="focus-visible:ring-0 hover:bg-transparent hover:opacity-75 transition-opacity pl-2!"
+              className="h-9 rounded-xl border border-transparent px-2.5 focus-visible:ring-0 hover:border-border/80 hover:bg-background/70"
             >
-              <Image src="/logo.svg" alt="Vibe" width={18} height={18} />
-              <span className="text-sm font-medium">{project.name}</span>
+              <div className="flex size-6 items-center justify-center rounded-md bg-primary/10">
+                <Image src="/logo.svg" alt="Vibe" width={15} height={15} />
+              </div>
+              <span className="max-w-[180px] truncate text-sm font-semibold tracking-tight">{project.name}</span>
               <ChevronDownIcon />
             </Button>
           </DropdownMenuTrigger>

@@ -4,7 +4,7 @@ import { ChevronRightIcon, Code2Icon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
-import { Fragment, MessageRole, MessageType } from "@/generated/prisma";
+import type { Fragment, MessageRole, MessageType } from "@prisma/client";
 
 interface UserMessageProps {
   content: string;
@@ -12,8 +12,8 @@ interface UserMessageProps {
 
 const UserMessage = ({ content }: UserMessageProps) => {
   return (
-    <div className="flex justify-end pb-4 pr-2 pl-10">
-      <Card className="rounded-lg bg-muted p-3 shadow-none border-none max-w-[80%] break-words">
+    <div className="flex justify-end px-2 pb-4 pl-10">
+      <Card className="max-w-[80%] break-words rounded-2xl border border-border/60 bg-secondary/90 px-4 py-3 text-[15px] leading-relaxed shadow-sm">
         {content}
       </Card>
     </div>
@@ -34,18 +34,18 @@ const FragmentCard = ({
   return (
     <button
       className={cn(
-        "flex items-start text-start gap-2 border rounded-lg bg-muted w-fit p-3 hover:bg-secondary transition-colors",
+        "flex w-fit items-start gap-2 rounded-xl border border-border/70 bg-card/80 p-3 text-start shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/35",
         isActiveFragment && 
-          "bg-primary text-primary-foreground border-primary hover:bg-primary",
+          "border-primary bg-primary text-primary-foreground hover:bg-primary",
       )}
       onClick={() => onFragmentClick(fragment)}
     >
       <Code2Icon className="size-4 mt-0.5" />
       <div className="flex flex-col flex-1">
-        <span className="text-sm font-medium line-clamp-1">
+        <span className="line-clamp-1 text-sm font-medium">
           {fragment.title}
         </span>
-        <span className="text-sm">Preview</span>
+        <span className="text-xs opacity-80">Preview</span>
       </div>
       <div className="flex items-center justify-center mt-0.5">
         <ChevronRightIcon className="size-4" />
@@ -73,24 +73,26 @@ const AssistantMessage = ({
 }: AssistantMessageProps) => {
   return (
     <div className={cn(
-      "flex flex-col group px-2 pb-4",
+      "group flex flex-col px-2 pb-4",
       type === "ERROR" && "text-red-700 dark:text-red-500",
     )}>
-      <div className="flex items-center gap-2 pl-2 mb-2">
-        <Image
-          src="/logo.svg"
-          alt="Vibe"
-          width={18}
-          height={18}
-          className="shrink-0"
-        />
-        <span className="text-sm font-medium">Vibe</span>
+      <div className="mb-2 flex items-center gap-2 pl-2">
+        <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 ring-1 ring-primary/15">
+          <Image
+            src="/logo.svg"
+            alt="Vibe"
+            width={14}
+            height={14}
+            className="shrink-0"
+          />
+        </div>
+        <span className="text-sm font-semibold tracking-tight">Vibe</span>
         <span className="text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
           {format(createdAt, "HH:mm 'on' MMM dd, yyyy")}
         </span>
       </div>
-      <div className="pl-8.5 flex flex-col gap-y-4">
-        <span>{content}</span>
+      <div className="flex flex-col gap-y-4 pl-8.5">
+        <span className="text-[15px] leading-relaxed">{content}</span>
         {fragment && type === "RESULT" && (
           <FragmentCard
             fragment={fragment}

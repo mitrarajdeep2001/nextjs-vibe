@@ -6,10 +6,11 @@ interface Props {
 
 const Layout = ({ children }: Props) => {
   return ( 
-    <main className="flex flex-col min-h-screen max-h-screen">
+    <main className="app-shell flex min-h-screen flex-col">
       <Navbar />
-      <div className="absolute inset-0 -z-10 h-full w-full bg-background dark:bg-[radial-gradient(#393e4a_1px,transparent_1px)] bg-[radial-gradient(#dadde2_1px,transparent_1px)] [background-size:16px_16px]" />
-      <div className="flex-1 flex flex-col px-4 pb-4">
+      <div className="pointer-events-none absolute -top-32 -left-10 -z-10 size-96 rounded-full bg-primary/20 blur-[120px]" />
+      <div className="pointer-events-none absolute top-40 -right-16 -z-10 size-[28rem] rounded-full bg-accent/45 blur-[120px]" />
+      <div className="flex-1 flex flex-col px-4 pb-4 pt-20">
         {children}
       </div>
     </main>
